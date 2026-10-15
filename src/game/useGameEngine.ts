@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameSpeed, SaveData, StatusMessage } from "./types";
+import type { GameSpeed, ProductId, SaveData, StatusMessage } from "./types";
 import { BASE_DAY_MS, DAYS_PER_MONTH } from "./constants";
 import { saveSlot } from "./saveManager";
-import { advanceDay, restockAll } from "./economy";
+import { advanceDay, restockAll, setPrice } from "./economy";
 import { formatCash } from "./dateUtils";
 
 export function useGameEngine(initialSave: SaveData) {
@@ -90,5 +90,13 @@ export function useGameEngine(initialSave: SaveData) {
     showMessage({ text: "Restocked for " + formatCash(preview.cost) + ".", ok: true });
   }, [showMessage]);
 
-  return { save, speed, setSpeed, saveNow, restock, message };
+  // Change the selling price of one product. The limits are checked inside setPrice.
+  const changePrice = useCallback((productId: ProductId, newPrice: number): void => {
+    setSave((prev) => {
+      const next = setPrice(prev, productId, newPrice);
+      return next === prev ? prev : { ...next, updatedAt: Date.now() };
+    });
+  }, []);
+
+  return { save, speed, setSpeed, saveNow, restock, changePrice, message };
 }

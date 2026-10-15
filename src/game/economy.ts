@@ -1,4 +1,4 @@
-import type { ProductNumbers, SaveData, ShopState } from "./types";
+import type { ProductId, ProductNumbers, SaveData, ShopState } from "./types";
 import {
   DAYS_PER_MONTH,
   DEMAND_NOISE,
@@ -11,6 +11,10 @@ import {
 import type { ProductDef } from "./data/products";
 import { PRODUCTS } from "./data/products";
 import { nextRandom } from "./rng";
+
+// The player may set a price from half of the base price up to double the base price.
+const PRICE_LIMIT_LOW = 0.5;
+const PRICE_LIMIT_HIGH = 2;
 
 function mapProducts(pick: (product: ProductDef) => number): ProductNumbers {
   const result: Partial<ProductNumbers> = {};
@@ -36,6 +40,35 @@ export function getUnitsWanted(product: ProductDef, price: number, roll: number)
   const safePrice = Math.max(price, 1);
   const priceFactor = Math.min(Math.pow(product.basePrice / safePrice, product.elasticity), PRICE_FACTOR_MAX);
   return Math.max(0, Math.round(product.baseDemand * dayFactor * priceFactor));
+}
+
+// Returns the lowest and highest price the player may set for a product.
+export function getPriceLimits(product: ProductDef): { min: number; max: number } {
+  return {
+    min: Math.max(1, Math.round(product.basePrice * PRICE_LIMIT_LOW)),
+    max: Math.max(2, Math.round(product.basePrice * PRICE_LIMIT_HIGH)),
+  };
+}
+
+// Sets the price of one product. The price is rounded and kept inside the limits.
+// This function does not change its input. It returns a new save.
+export function setPrice(save: SaveData, productId: ProductId, newPrice: number): SaveData {
+  const product = PRODUCTS.find((item) => item.id === productId);
+  if (product === undefined || !Number.isFinite(newPrice)) {
+    return save;
+  }
+  const limits = getPriceLimits(product);
+  const price = Math.min(limits.max, Math.max(limits.min, Math.round(newPrice)));
+  if (price === save.shop.prices[productId]) {
+    return save;
+  }
+  return {
+    ...save,
+    shop: {
+      ...save.shop,
+      prices: { ...save.shop.prices, [productId]: price },
+    },
+  };
 }
 
 // Moves the game forward by one day. This function does not change its input. It returns a new save.

@@ -10,7 +10,7 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({ initialSave, onExit }: GameScreenProps) {
-  const { save, speed, setSpeed, saveNow, restock, message } = useGameEngine(initialSave);
+  const { save, speed, setSpeed, saveNow, restock, changePrice, message } = useGameEngine(initialSave);
 
   const handleSaveAndExit = () => {
     if (saveNow()) {
@@ -29,7 +29,7 @@ export default function GameScreen({ initialSave, onExit }: GameScreenProps) {
         onSpeedChange={setSpeed}
       />
       <main className="flex flex-1 items-start justify-center p-4">
-        <ShopPanel shop={save.shop} onRestock={restock} />
+        <ShopPanel shop={save.shop} onRestock={restock} onPriceChange={changePrice} />
       </main>
       <footer className="flex flex-wrap items-center gap-3 p-4">
         <button type="button" className={PRIMARY_BUTTON} onClick={() => { saveNow(); }}>
