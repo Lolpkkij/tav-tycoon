@@ -18,5 +18,14 @@ export const SHOP_NAME = "Corner Shop";
 export const MONTHLY_RENT = 1500;
 export const MONTHLY_WAGES = 1200;
 export const RESTOCK_TARGET = 100;
-export const DEMAND_NOISE = 0.2;
 export const PRICE_FACTOR_MAX = 3;
+
+// Customer demand settings. All numbers here are placeholders.
+export const LOCATION_NAME = "Kuching";
+export const LOCATION_TRAFFIC = 1;
+export const RANDOM_MAX_FACTOR = 2;
+export const NEUTRAL_QUALITY = 2;
+export const QUALITY_DEMAND_STEP = 0.15;
+export const PAYDAY_END_FACTOR = 1.25; // days 25 to 30
+export const PAYDAY_START_FACTOR = 1.15; // days 1 to 5
+export const MIDMONTH_FACTOR = 0.95; // days 6 to 24

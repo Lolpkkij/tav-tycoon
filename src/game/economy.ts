@@ -1,10 +1,16 @@
 import type { ProductId, ProductNumbers, SaveData, ShopState } from "./types";
 import {
   DAYS_PER_MONTH,
-  DEMAND_NOISE,
+  LOCATION_TRAFFIC,
+  MIDMONTH_FACTOR,
   MONTHLY_RENT,
   MONTHLY_WAGES,
+  NEUTRAL_QUALITY,
+  PAYDAY_END_FACTOR,
+  PAYDAY_START_FACTOR,
   PRICE_FACTOR_MAX,
+  QUALITY_DEMAND_STEP,
+  RANDOM_MAX_FACTOR,
   RESTOCK_TARGET,
   SHOP_NAME,
 } from "./constants";
@@ -34,12 +40,31 @@ export function createInitialShop(): ShopState {
   };
 }
 
-// roll is a number from 0 up to (not including) 1.
-export function getUnitsWanted(product: ProductDef, price: number, roll: number): number {
-  const dayFactor = 1 - DEMAND_NOISE + roll * 2 * DEMAND_NOISE;
+// Returns a number that depends on the day of the month. Payday time is busier.
+export function getMonthFactor(totalDays: number): number {
+  const dayOfMonth = (totalDays % DAYS_PER_MONTH) + 1;
+  if (dayOfMonth >= 25) {
+    return PAYDAY_END_FACTOR;
+  }
+  if (dayOfMonth <= 5) {
+    return PAYDAY_START_FACTOR;
+  }
+  return MIDMONTH_FACTOR;
+}
+
+// How many customers we expect for one product on one day, before the random roll.
+export function getExpectedDemand(product: ProductDef, price: number, totalDays: number): number {
   const safePrice = Math.max(price, 1);
   const priceFactor = Math.min(Math.pow(product.basePrice / safePrice, product.elasticity), PRICE_FACTOR_MAX);
-  return Math.max(0, Math.round(product.baseDemand * dayFactor * priceFactor));
+  const qualityFactor = 1 + (product.quality - NEUTRAL_QUALITY) * QUALITY_DEMAND_STEP;
+  return product.baseDemand * priceFactor * getMonthFactor(totalDays) * LOCATION_TRAFFIC * qualityFactor;
+}
+
+// roll is a number from 0 up to (not including) 1.
+// The result is a random whole number from 0 up to about 2 times the expected demand.
+export function getUnitsWanted(product: ProductDef, price: number, totalDays: number, roll: number): number {
+  const expected = getExpectedDemand(product, price, totalDays);
+  return Math.max(0, Math.round(roll * expected * RANDOM_MAX_FACTOR));
 }
 
 // Returns the lowest and highest price the player may set for a product.
@@ -82,7 +107,7 @@ export function advanceDay(save: SaveData): SaveData {
     const roll = nextRandom(rngState);
     rngState = roll.state;
     const price = save.shop.prices[product.id];
-    const wanted = getUnitsWanted(product, price, roll.value);
+    const wanted = getUnitsWanted(product, price, save.totalDays, roll.value);
     const sold = Math.min(wanted, stock[product.id]);
     stock[product.id] = stock[product.id] - sold;
     revenue = revenue + sold * price;
