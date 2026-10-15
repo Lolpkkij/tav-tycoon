@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameSpeed, SaveData } from "./types";
+import type { GameSpeed, SaveData, StatusMessage } from "./types";
 import { BASE_DAY_MS, DAYS_PER_MONTH } from "./constants";
 import { saveSlot } from "./saveManager";
+import { advanceDay, restockAll } from "./economy";
+import { formatCash } from "./dateUtils";
 
 export function useGameEngine(initialSave: SaveData) {
   const [save, setSave] = useState<SaveData>(initialSave);
   const [speed, setSpeed] = useState<GameSpeed>(1);
   const [tabHidden, setTabHidden] = useState<boolean>(document.hidden);
-  const [saveMessage, setSaveMessage] = useState<string>("");
+  const [message, setMessage] = useState<StatusMessage | null>(null);
 
   // Always holds the newest save. Used by timers and event handlers.
   const saveRef = useRef<SaveData>(initialSave);
@@ -34,7 +36,7 @@ export function useGameEngine(initialSave: SaveData) {
   useEffect(() => {
     if (speed === 0 || tabHidden) return;
     const id = window.setInterval(() => {
-      setSave((prev) => ({ ...prev, totalDays: prev.totalDays + 1, updatedAt: Date.now() }));
+      setSave((prev) => ({ ...advanceDay(prev), updatedAt: Date.now() }));
     }, BASE_DAY_MS / speed);
     return () => window.clearInterval(id);
   }, [speed, tabHidden]);
@@ -55,16 +57,38 @@ export function useGameEngine(initialSave: SaveData) {
     };
   }, []);
 
-  // Manual save. Returns true if it worked.
-  const saveNow = useCallback((): boolean => {
-    const ok = saveSlot({ ...saveRef.current, updatedAt: Date.now() });
-    setSaveMessage(ok ? "Saved!" : "Save failed.");
+  // Shows a message for 2 seconds.
+  const showMessage = useCallback((next: StatusMessage): void => {
+    setMessage(next);
     if (messageTimerRef.current !== null) {
       window.clearTimeout(messageTimerRef.current);
     }
-    messageTimerRef.current = window.setTimeout(() => setSaveMessage(""), 2000);
-    return ok;
+    messageTimerRef.current = window.setTimeout(() => setMessage(null), 2000);
   }, []);
 
-  return { save, speed, setSpeed, saveNow, saveMessage };
+  // Manual save. Returns true if it worked.
+  const saveNow = useCallback((): boolean => {
+    const ok = saveSlot({ ...saveRef.current, updatedAt: Date.now() });
+    showMessage(ok ? { text: "Saved!", ok: true } : { text: "Save failed.", ok: false });
+    return ok;
+  }, [showMessage]);
+
+  // Fill the shop stock to the target.
+  const restock = useCallback((): void => {
+    const preview = restockAll(saveRef.current);
+    if (!preview.ok) {
+      showMessage({
+        text: preview.cost === 0 ? "Stock is already full." : "Not enough cash to restock.",
+        ok: false,
+      });
+      return;
+    }
+    setSave((prev) => {
+      const result = restockAll(prev);
+      return result.ok ? { ...result.save, updatedAt: Date.now() } : prev;
+    });
+    showMessage({ text: "Restocked for " + formatCash(preview.cost) + ".", ok: true });
+  }, [showMessage]);
+
+  return { save, speed, setSpeed, saveNow, restock, message };
 }

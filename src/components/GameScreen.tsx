@@ -1,6 +1,7 @@
 import type { SaveData } from "../game/types";
 import { useGameEngine } from "../game/useGameEngine";
 import TopBar from "./TopBar";
+import ShopPanel from "./ShopPanel";
 import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "./styles";
 
 interface GameScreenProps {
@@ -9,7 +10,7 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({ initialSave, onExit }: GameScreenProps) {
-  const { save, speed, setSpeed, saveNow, saveMessage } = useGameEngine(initialSave);
+  const { save, speed, setSpeed, saveNow, restock, message } = useGameEngine(initialSave);
 
   const handleSaveAndExit = () => {
     if (saveNow()) {
@@ -27,8 +28,8 @@ export default function GameScreen({ initialSave, onExit }: GameScreenProps) {
         speed={speed}
         onSpeedChange={setSpeed}
       />
-      <main className="flex flex-1 items-center justify-center p-4">
-        <p className="text-center text-base text-white/70">Your town will appear here.</p>
+      <main className="flex flex-1 items-start justify-center p-4">
+        <ShopPanel shop={save.shop} onRestock={restock} />
       </main>
       <footer className="flex flex-wrap items-center gap-3 p-4">
         <button type="button" className={PRIMARY_BUTTON} onClick={() => { saveNow(); }}>
@@ -39,9 +40,9 @@ export default function GameScreen({ initialSave, onExit }: GameScreenProps) {
         </button>
         <span
           aria-live="polite"
-          className={saveMessage === "Saved!" ? "text-base text-green-400" : "text-base text-red-400"}
+          className={message !== null && message.ok ? "text-base text-green-400" : "text-base text-red-400"}
         >
-          {saveMessage}
+          {message !== null ? message.text : ""}
         </span>
       </footer>
     </div>
