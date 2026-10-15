@@ -1,7 +1,5 @@
 import type { GameMode, SlotId } from "../game/types";
-import { MAX_NAME_LENGTH, START_CASH } from "../game/constants";
-import { formatCash } from "../game/dateUtils";
-import { createNewSave, saveSlot } from "../game/saveManager";
+import { MAX_NAME_LENGTH } from "../game/constants";
 import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "./styles";
 import { useState } from "react";
 

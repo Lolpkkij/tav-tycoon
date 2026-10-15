@@ -1,14 +1,9 @@
-import type { SlotId } from "../game/types";
-import { DAYS_PER_MONTH } from "../game/constants";
-import { formatDate, formatCash } from "../game/dateUtils";
-import {
-  createNewSave,
-  deleteSlot,
-  listSlots,
-  loadSlot,
-} from "../game/saveManager";
-import { PRIMARY_BUTTON, SECONDARY_BUTTON, DANGER_BUTTON, CARD } from "./styles";
 import { useState } from "react";
+import type { SaveData, SlotId } from "../game/types";
+import { SLOT_IDS } from "../game/constants";
+import { formatCash, formatDate } from "../game/dateUtils";
+import { deleteSlot, listSlots } from "../game/saveManager";
+import { CARD, DANGER_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from "./styles";
 
 interface SaveSlotScreenProps {
   onBack: () => void;
@@ -17,16 +12,9 @@ interface SaveSlotScreenProps {
 }
 
 export default function SaveSlotScreen({ onBack, onPickEmpty, onLoad }: SaveSlotScreenProps) {
-  const [slots, setSlots] = useState<({ name: string } | null)[]>(listSlots());
+  const [slots, setSlots] = useState<(SaveData | null)[]>(() => listSlots());
 
-  const handleLoadClick = (slotId: SlotId) => {
-    const loaded = loadSlot(slotId);
-    if (loaded !== null) {
-      onLoad(slotId);
-    }
-  };
-
-  const handleDeleteClick = (slotId: SlotId) => {
+  const handleDelete = (slotId: SlotId) => {
     if (window.confirm("Delete this save? This cannot be undone.")) {
       deleteSlot(slotId);
       setSlots(listSlots());
@@ -36,54 +24,56 @@ export default function SaveSlotScreen({ onBack, onPickEmpty, onLoad }: SaveSlot
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
       <h1 className="text-2xl font-bold">Choose a Save Slot</h1>
-      <div className="flex flex-col gap-4">
-        {slots.map((slot, index) => {
-          const slotId = index + 1;
-          return (
-            <div key={slotId} className={CARD}>
-              {slot === null ? (
-                <>
-                  <div className="text-base font-semibold">Slot {slotId}: Empty Slot</div>
+      {SLOT_IDS.map((slotId, index) => {
+        const slot = slots[index];
+        return (
+          <div key={slotId} className={CARD}>
+            {slot === null || slot === undefined ? (
+              <>
+                <div className="text-base font-semibold">Slot {slotId}: Empty Slot</div>
+                <button
+                  type="button"
+                  className={PRIMARY_BUTTON + " mt-3 w-full"}
+                  onClick={() => onPickEmpty(slotId)}
+                >
+                  Start
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-sm text-white/70">Slot {slotId}</div>
+                <div className="text-lg font-semibold">{slot.name}</div>
+                <div className="text-sm text-white/70">
+                  {(slot.mode === "story" ? "Story" : "Sandbox") +
+                    " | " +
+                    formatDate(slot.totalDays) +
+                    " | " +
+                    formatCash(slot.cash)}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    className={`${PRIMARY_BUTTON} mt-3 w-full`}
-                    onClick={() => onPickEmpty(slotId as SlotId)}
+                    className={PRIMARY_BUTTON + " min-w-[120px] flex-1"}
+                    onClick={() => onLoad(slotId)}
                   >
-                    Start
+                    Load
                   </button>
-                </>
-              ) : (
-                <>
-                  <div className="text-sm text-white/70">Slot {slotId}</div>
-                  <div className="text-lg font-semibold">{slot.name}</div>
-                  <div className="text-sm text-white/70">
-                    Story | {formatDate(0)} | 10,000 Tav
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      className={`${PRIMARY_BUTTON} flex-1 min-w-48`}
-                      onClick={() => handleLoadClick(slotId as SlotId)}
-                    >
-                      Load
-                    </button>
-                    <button
-                      type="button"
-                      className={`${DANGER_BUTTON} flex-1 min-w-48`}
-                      onClick={() => handleDeleteClick(slotId as SlotId)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <button
+                    type="button"
+                    className={DANGER_BUTTON + " min-w-[120px] flex-1"}
+                    onClick={() => handleDelete(slotId)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
       <button
         type="button"
-        className={`${SECONDARY_BUTTON} mt-4 w-72 max-w-full.self-center`}
+        className={SECONDARY_BUTTON + " mt-2 w-72 max-w-full self-center"}
         onClick={onBack}
       >
         Back
