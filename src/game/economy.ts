@@ -135,6 +135,36 @@ export interface RestockResult {
   cost: number;
 }
 
+// Cost to fill one product up to RESTOCK_TARGET. It is 0 when the stock is already full.
+export function getRestockCost(product: ProductDef, currentStock: number): number {
+  const needed = Math.max(0, RESTOCK_TARGET - currentStock);
+  return needed * product.wholesaleCost;
+}
+
+// Fills one product up to RESTOCK_TARGET. All or nothing.
+export function restockProduct(save: SaveData, productId: ProductId): RestockResult {
+  const product = PRODUCTS.find((item) => item.id === productId);
+  if (product === undefined) {
+    return { save, ok: false, cost: 0 };
+  }
+  const cost = getRestockCost(product, save.shop.stock[productId]);
+  if (cost === 0 || cost > save.cash) {
+    return { save, ok: false, cost };
+  }
+  return {
+    save: {
+      ...save,
+      cash: save.cash - cost,
+      shop: {
+        ...save.shop,
+        stock: { ...save.shop.stock, [productId]: RESTOCK_TARGET },
+      },
+    },
+    ok: true,
+    cost,
+  };
+}
+
 // Fills every product up to RESTOCK_TARGET. All or nothing.
 export function restockAll(save: SaveData): RestockResult {
   let cost = 0;
@@ -148,8 +178,8 @@ export function restockAll(save: SaveData): RestockResult {
     return { save, ok: false, cost };
   }
   return {
-    save: { ...save, cash: save.cash - cost, shop: { ...save.shop, stock } },
-    ok: true,
-    cost,
+    ...save,
+    cash: save.cash - cost,
+    shop: { ...save.shop, stock },
   };
 }
