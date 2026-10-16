@@ -1,6 +1,6 @@
 import type { ProductId, ShopState } from "../game/types";
 import { PRODUCTS } from "../game/data/products";
-import { MONTHLY_RENT, MONTHLY_WAGES, RESTOCK_TARGET } from "../game/constants";
+import { DELIVERY_FEE, MONTHLY_RENT, MONTHLY_WAGES, RESTOCK_TARGET } from "../game/constants";
 import { formatCash } from "../game/dateUtils";
 import { getPriceLimits, getRestockCost } from "../game/economy";
 import { CARD, PRIMARY_BUTTON } from "./styles";
@@ -28,14 +28,17 @@ export default function ShopPanel({ shop, onRestock, onRestockOne, onPriceChange
       <p className="text-sm text-white/70">
         Rent and wages: {formatCash(MONTHLY_RENT + MONTHLY_WAGES)} every 30 days.
       </p>
+      <p className="text-sm text-white/70">
+        Delivery fee: {formatCash(DELIVERY_FEE)} for each delivery. &quot;Restock all&quot; is one delivery.
+      </p>
       <ul className="mt-3 flex flex-col gap-2">
         {PRODUCTS.map((product) => {
           const price = shop.prices[product.id];
           const stock = shop.stock[product.id];
           const limits = getPriceLimits(product);
           const profit = price - product.wholesaleCost;
-          const restockCost = getRestockCost(product, stock);
-          const isFull = restockCost === 0;
+          const goodsCost = getRestockCost(product, stock);
+          const isFull = goodsCost === 0;
           return (
             <li key={product.id} className="flex flex-col gap-2 rounded-lg bg-white/5 px-3 py-2">
               <span className="text-base font-semibold">
@@ -43,11 +46,11 @@ export default function ShopPanel({ shop, onRestock, onRestockOne, onPriceChange
                 <span className="text-sm font-normal text-white/70">({product.unitLabel})</span>
               </span>
               <span className="text-sm text-white/80">
-                Stock {stock} | Cost {formatCash(product.wholesaleCost)} | Profit{" "}
+                Stock {stock} | Cost {formatCash(product.wholesaleCost)} | Profit{' '}
                 <span className={profit >= 0 ? "text-green-400" : "text-red-400"}>
                   {profit >= 0 ? "+" : ""}
                   {profit}
-                </span>{" "}
+                </span>{' '}
                 each
               </span>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -81,7 +84,7 @@ export default function ShopPanel({ shop, onRestock, onRestockOne, onPriceChange
                   disabled={isFull}
                   onClick={() => onRestockOne(product.id)}
                 >
-                  {isFull ? "Full" : "Restock " + formatCash(restockCost)}
+                  {isFull ? "Full" : "Restock " + formatCash(goodsCost + DELIVERY_FEE)}
                 </button>
               </div>
             </li>
@@ -89,7 +92,7 @@ export default function ShopPanel({ shop, onRestock, onRestockOne, onPriceChange
         })}
       </ul>
       <button type="button" className={PRIMARY_BUTTON + " mt-4 w-full"} onClick={onRestock}>
-        Restock all to {RESTOCK_TARGET}
+        Restock all to {RESTOCK_TARGET} (one delivery)
       </button>
     </section>
   );

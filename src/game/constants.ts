@@ -20,6 +20,10 @@ export const MONTHLY_WAGES = 1200;
 export const RESTOCK_TARGET = 100;
 export const PRICE_FACTOR_MAX = 3;
 
+// Delivery fee for each restock delivery.
+// Based on the Lalamove van base fare in Malaysia (RM 45.88), rounded. 1 Tav = RM 1.
+export const DELIVERY_FEE = 46;
+
 // Customer demand settings. All numbers here are placeholders.
 export const LOCATION_NAME = "Kuching";
 export const LOCATION_TRAFFIC = 1;

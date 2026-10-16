@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameSpeed, ProductId, SaveData, StatusMessage } from "./types";
-import { BASE_DAY_MS, DAYS_PER_MONTH } from "./constants";
+import { BASE_DAY_MS, DAYS_PER_MONTH, DELIVERY_FEE } from "./constants";
 import { saveSlot } from "./saveManager";
 import { advanceDay, restockAll, restockProduct, setPrice } from "./economy";
 import { PRODUCTS } from "./data/products";
@@ -74,7 +74,7 @@ export function useGameEngine(initialSave: SaveData) {
     return ok;
   }, [showMessage]);
 
-  // Fill the shop stock to the target.
+  // Fill the shop stock to the target. This is one delivery.
   const restock = useCallback((): void => {
     const preview = restockAll(saveRef.current);
     if (!preview.ok) {
@@ -88,10 +88,13 @@ export function useGameEngine(initialSave: SaveData) {
       const result = restockAll(prev);
       return result.ok ? { ...result.save, updatedAt: Date.now() } : prev;
     });
-    showMessage({ text: "Restocked for " + formatCash(preview.cost) + ".", ok: true });
+    showMessage({
+      text: "Restocked for " + formatCash(preview.cost) + " (includes " + formatCash(DELIVERY_FEE) + " delivery).",
+      ok: true,
+    });
   }, [showMessage]);
 
-  // Fill the stock of one product to the target.
+  // Fill the stock of one product to the target. This is one delivery.
   const restockOne = useCallback((productId: ProductId): void => {
     const preview = restockProduct(saveRef.current, productId);
     if (!preview.ok) {
@@ -107,7 +110,11 @@ export function useGameEngine(initialSave: SaveData) {
     });
     const product = PRODUCTS.find((item) => item.id === productId);
     const name = product !== undefined ? product.name : "item";
-    showMessage({ text: "Restocked " + name + " for " + formatCash(preview.cost) + ".", ok: true });
+    showMessage({
+      text:
+        "Restocked " + name + " for " + formatCash(preview.cost) + " (includes " + formatCash(DELIVERY_FEE) + " delivery).",
+      ok: true,
+    });
   }, [showMessage]);
 
   // Change the selling price of one product. The limits are checked inside setPrice.
