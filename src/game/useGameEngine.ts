@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameSpeed, ProductId, SaveData, StatusMessage } from "./types";
 import { BASE_DAY_MS, DAYS_PER_MONTH } from "./constants";
 import { saveSlot } from "./saveManager";
-import { advanceDay, restockAll, setPrice } from "./economy";
+import { advanceDay, restockAll, restockProduct, setPrice } from "./economy";
+import { PRODUCTS } from "./data/products";
 import { formatCash } from "./dateUtils";
 
 export function useGameEngine(initialSave: SaveData) {
@@ -90,6 +91,25 @@ export function useGameEngine(initialSave: SaveData) {
     showMessage({ text: "Restocked for " + formatCash(preview.cost) + ".", ok: true });
   }, [showMessage]);
 
+  // Fill the stock of one product to the target.
+  const restockOne = useCallback((productId: ProductId): void => {
+    const preview = restockProduct(saveRef.current, productId);
+    if (!preview.ok) {
+      showMessage({
+        text: preview.cost === 0 ? "Stock is already full." : "Not enough cash to restock.",
+        ok: false,
+      });
+      return;
+    }
+    setSave((prev) => {
+      const result = restockProduct(prev, productId);
+      return result.ok ? { ...result.save, updatedAt: Date.now() } : prev;
+    });
+    const product = PRODUCTS.find((item) => item.id === productId);
+    const name = product !== undefined ? product.name : "item";
+    showMessage({ text: "Restocked " + name + " for " + formatCash(preview.cost) + ".", ok: true });
+  }, [showMessage]);
+
   // Change the selling price of one product. The limits are checked inside setPrice.
   const changePrice = useCallback((productId: ProductId, newPrice: number): void => {
     setSave((prev) => {
@@ -98,5 +118,5 @@ export function useGameEngine(initialSave: SaveData) {
     });
   }, []);
 
-  return { save, speed, setSpeed, saveNow, restock, changePrice, message };
+  return { save, speed, setSpeed, saveNow, restock, restockOne, changePrice, message };
 }
