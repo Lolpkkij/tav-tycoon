@@ -178,8 +178,8 @@ export function restockAll(save: SaveData): RestockResult {
     return { save, ok: false, cost };
   }
   return {
-    ...save,
-    cash: save.cash - cost,
-    shop: { ...save.shop, stock },
+    save: { ...save, cash: save.cash - cost, shop: { ...save.shop, stock } },
+    ok: true,
+    cost,
   };
 }
